@@ -311,7 +311,6 @@
 				"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
 
 			const API = "http://localhost:8000/diff";
-			const SCALE = 1.5;
 
 			// ── File inputs ────────────────────────────────────
 			const inOld = document.getElementById("inOld");
@@ -380,10 +379,8 @@
 
 				for (let p = 1; p <= pdf.numPages; p++) {
 					const page = await pdf.getPage(p);
-					const viewport = page.getViewport({ scale: SCALE });
 					const textContent = await page.getTextContent();
 
-					// Record each item's start offset in fullText BEFORE appending
 					const itemOffsets = [];
 					for (const item of textContent.items) {
 						itemOffsets.push(fullText.length);
@@ -393,7 +390,7 @@
 						}
 					}
 
-					pages.push({ page, viewport, textContent, itemOffsets });
+					pages.push({ page, textContent, itemOffsets });
 				}
 
 				return { pages, fullText };
@@ -445,13 +442,14 @@
 			// ── Render pages with highlights ───────────────────
 			async function renderPages(pages, containerId, hlSet, hlClass) {
 				const container = document.getElementById(containerId);
+				const paneWidth =
+					container.closest(".pane").clientWidth -
+					32; /* 16px padding each side */
 
-				for (const {
-					page,
-					viewport,
-					textContent,
-					itemOffsets,
-				} of pages) {
+				for (const { page, textContent, itemOffsets } of pages) {
+					const defaultViewport = page.getViewport({ scale: 1 });
+					const fitScale = paneWidth / defaultViewport.width;
+					const viewport = page.getViewport({ scale: fitScale });
 					// Wrapper
 					const wrap = document.createElement("div");
 					wrap.className = "page-wrap";
