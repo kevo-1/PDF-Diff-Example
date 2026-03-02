@@ -1,7 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from service import compute_diff
+from service import compute_text_diff
 
 app = FastAPI(title="PDF Diff API")
 
@@ -13,16 +12,12 @@ app.add_middleware(
 )
 
 
-class DiffRequest(BaseModel):
-    old_text: str
-    new_text: str
-
-
-@app.post("/diff")
-def diff_texts(body: DiffRequest):
-    """
-    Accepts the extracted text of two PDFs and returns character-level diff ops.
-    Text extraction is performed client-side by pdf.js to ensure highlight alignment.
-    """
-    diffs = compute_diff(body.old_text, body.new_text)
-    return {"diffs": diffs}
+@app.post("/text-diff")
+async def text_diff(
+    old_pdf: UploadFile = File(...),
+    new_pdf: UploadFile = File(...),
+):
+    """Word-level text diff with highlighted page images and changes list."""
+    old_bytes = await old_pdf.read()
+    new_bytes = await new_pdf.read()
+    return compute_text_diff(old_bytes, new_bytes)

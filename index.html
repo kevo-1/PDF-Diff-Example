@@ -4,8 +4,6 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>PDF Diff Viewer</title>
-		<!-- pdf.js 2.16.105 — stable renderTextLayer API -->
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 		<style>
 			*,
 			*::before,
@@ -17,7 +15,7 @@
 
 			body {
 				font-family: "Segoe UI", system-ui, sans-serif;
-				background: #111827;
+				background: #0f172a;
 				color: #e2e8f0;
 				display: flex;
 				flex-direction: column;
@@ -25,22 +23,22 @@
 				overflow: hidden;
 			}
 
-			/* ── Header ────────────────────────────────────── */
+			/* ── Header ─────────────────────────────────────── */
 			header {
 				flex-shrink: 0;
 				display: flex;
 				align-items: center;
 				gap: 12px;
-				padding: 12px 24px;
+				padding: 10px 20px;
 				background: #1e293b;
 				border-bottom: 1px solid #334155;
 			}
 			header h1 {
-				font-size: 1.1rem;
+				font-size: 1.05rem;
 				font-weight: 600;
 			}
 			.badge {
-				font-size: 0.7rem;
+				font-size: 0.68rem;
 				background: #0f3460;
 				border: 1px solid #2563eb;
 				border-radius: 4px;
@@ -48,13 +46,13 @@
 				color: #93c5fd;
 			}
 
-			/* ── Controls ──────────────────────────────────── */
+			/* ── Controls ───────────────────────────────────── */
 			.controls {
 				flex-shrink: 0;
 				display: flex;
 				align-items: center;
-				gap: 12px;
-				padding: 10px 24px;
+				gap: 10px;
+				padding: 8px 20px;
 				background: #1e293b;
 				border-bottom: 1px solid #334155;
 				flex-wrap: wrap;
@@ -62,10 +60,10 @@
 			.file-group {
 				display: flex;
 				flex-direction: column;
-				gap: 4px;
+				gap: 3px;
 			}
 			.file-group label {
-				font-size: 0.7rem;
+				font-size: 0.68rem;
 				font-weight: 600;
 				letter-spacing: 0.06em;
 				text-transform: uppercase;
@@ -76,20 +74,19 @@
 			.file-group label.lbl-new {
 				color: #60a5fa;
 			}
-
 			.file-btn {
 				position: relative;
 				display: flex;
 				align-items: center;
-				gap: 8px;
-				padding: 7px 14px;
+				gap: 6px;
+				padding: 6px 12px;
 				background: #0f172a;
 				border: 1.5px dashed #475569;
-				border-radius: 7px;
+				border-radius: 6px;
 				cursor: pointer;
-				font-size: 0.82rem;
+				font-size: 0.78rem;
 				color: #94a3b8;
-				min-width: 200px;
+				min-width: 180px;
 				transition:
 					border-color 0.15s,
 					background 0.15s;
@@ -108,22 +105,35 @@
 				white-space: nowrap;
 				overflow: hidden;
 				text-overflow: ellipsis;
-				max-width: 160px;
+				max-width: 140px;
+			}
+
+			.sync-toggle {
+				display: flex;
+				align-items: center;
+				gap: 5px;
+				font-size: 0.76rem;
+				color: #94a3b8;
+				cursor: pointer;
+				user-select: none;
+			}
+			.sync-toggle input {
+				accent-color: #2563eb;
+				cursor: pointer;
 			}
 
 			#compareBtn {
-				padding: 8px 22px;
+				padding: 7px 20px;
 				background: linear-gradient(135deg, #2563eb, #1d4ed8);
 				border: none;
-				border-radius: 7px;
+				border-radius: 6px;
 				color: #fff;
-				font-size: 0.88rem;
+				font-size: 0.84rem;
 				font-weight: 600;
 				cursor: pointer;
 				transition:
 					opacity 0.15s,
 					transform 0.1s;
-				margin-left: 4px;
 			}
 			#compareBtn:hover:not(:disabled) {
 				opacity: 0.88;
@@ -135,47 +145,18 @@
 			}
 
 			#status {
-				font-size: 0.8rem;
+				font-size: 0.78rem;
 				color: #64748b;
-				min-width: 120px;
+				min-width: 100px;
 			}
 			#status.err {
 				color: #f87171;
 			}
 
-			/* ── Legend ────────────────────────────────────── */
-			.legend {
-				flex-shrink: 0;
-				display: flex;
-				gap: 20px;
-				padding: 6px 24px;
-				background: #1e293b;
-				border-bottom: 1px solid #334155;
-				font-size: 0.75rem;
-			}
-			.legend span {
-				display: flex;
-				align-items: center;
-				gap: 6px;
-			}
-			.sw {
-				width: 14px;
-				height: 14px;
-				border-radius: 2px;
-			}
-			.sw-del {
-				background: rgba(251, 191, 36, 0.5);
-				border: 1px solid #fbbf24;
-			}
-			.sw-add {
-				background: rgba(96, 165, 250, 0.5);
-				border: 1px solid #60a5fa;
-			}
-
-			/* ── Viewer ─────────────────────────────────────── */
-			.viewer {
-				display: flex;
+			/* ── Main layout ────────────────────────────────── */
+			.main-area {
 				flex: 1;
+				display: flex;
 				overflow: hidden;
 			}
 
@@ -194,8 +175,8 @@
 				position: sticky;
 				top: 0;
 				z-index: 10;
-				padding: 8px 16px;
-				font-size: 0.72rem;
+				padding: 6px 14px;
+				font-size: 0.7rem;
 				font-weight: 700;
 				text-transform: uppercase;
 				letter-spacing: 0.07em;
@@ -215,56 +196,143 @@
 				display: flex;
 				flex-direction: column;
 				align-items: center;
-				padding: 20px 16px;
-				gap: 18px;
+				padding: 16px 12px;
+				gap: 14px;
 			}
-
-			/* ── Page wrapper ────────────────────────────────── */
 			.page-wrap {
-				position: relative;
-				box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+				box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 				border-radius: 3px;
 				overflow: hidden;
 				background: #fff;
 			}
-			.page-wrap canvas {
+			.page-wrap img {
 				display: block;
+				width: 100%;
+				height: auto;
 			}
 
-			/* ── pdf.js text layer ───────────────────────────── */
-			.textLayer {
-				position: absolute;
-				top: 0;
-				left: 0;
-				width: 100%;
-				height: 100%;
+			/* ── Changes panel ──────────────────────────────── */
+			.changes-panel {
+				width: 280px;
+				flex-shrink: 0;
+				display: flex;
+				flex-direction: column;
+				background: #1e293b;
+				border-left: 1px solid #334155;
 				overflow: hidden;
-				line-height: 1;
-				text-size-adjust: none;
-				pointer-events: none;
 			}
-			.textLayer span,
-			.textLayer br {
-				color: transparent;
-				position: absolute;
-				white-space: pre;
-				transform-origin: 0% 0%;
+			.panel-header {
+				padding: 10px 14px;
+				font-size: 0.78rem;
+				font-weight: 700;
+				text-transform: uppercase;
+				letter-spacing: 0.06em;
+				color: #94a3b8;
+				border-bottom: 1px solid #334155;
+				display: flex;
+				align-items: center;
+				gap: 8px;
 			}
-			/* Highlight classes — only these two added by JS */
-			.textLayer .hl-del {
-				background: rgba(251, 191, 36, 0.5);
-				border-radius: 2px;
+			.panel-header .count {
+				background: #2563eb;
+				color: #fff;
+				font-size: 0.68rem;
+				padding: 1px 7px;
+				border-radius: 10px;
+				font-weight: 700;
 			}
-			.textLayer .hl-add {
-				background: rgba(96, 165, 250, 0.5);
-				border-radius: 2px;
+			.search-box {
+				padding: 8px 14px;
+				border-bottom: 1px solid #334155;
+			}
+			.search-box input {
+				width: 100%;
+				padding: 6px 10px;
+				background: #0f172a;
+				border: 1px solid #475569;
+				border-radius: 5px;
+				color: #e2e8f0;
+				font-size: 0.78rem;
+				outline: none;
+			}
+			.search-box input::placeholder {
+				color: #64748b;
+			}
+			.search-box input:focus {
+				border-color: #2563eb;
+			}
+
+			.changes-list {
+				flex: 1;
+				overflow-y: auto;
+				padding: 6px 0;
+			}
+
+			.change-item {
+				padding: 8px 14px;
+				cursor: pointer;
+				border-bottom: 1px solid #1e293b;
+				transition: background 0.1s;
+				font-size: 0.76rem;
+				line-height: 1.4;
+			}
+			.change-item:hover {
+				background: #334155;
+			}
+			.change-item.active {
+				background: #1e3a5f;
+				border-left: 3px solid #2563eb;
+			}
+
+			.change-item .change-badge {
+				display: inline-block;
+				font-size: 0.62rem;
+				font-weight: 700;
+				padding: 1px 5px;
+				border-radius: 3px;
+				text-transform: uppercase;
+				margin-right: 6px;
+			}
+			.change-badge.del {
+				background: rgba(248, 113, 113, 0.2);
+				color: #fca5a5;
+			}
+			.change-badge.add {
+				background: rgba(74, 222, 128, 0.2);
+				color: #86efac;
+			}
+			.change-badge.mod {
+				background: rgba(251, 191, 36, 0.2);
+				color: #fde68a;
+			}
+
+			.change-item .change-page {
+				font-size: 0.65rem;
+				color: #64748b;
+				margin-left: 4px;
+			}
+			.change-item .change-text {
+				display: block;
+				margin-top: 3px;
+				color: #94a3b8;
+				font-size: 0.72rem;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: ellipsis;
+			}
+			.change-text .old-t {
+				color: #fca5a5;
+				text-decoration: line-through;
+			}
+			.change-text .new-t {
+				color: #86efac;
 			}
 		</style>
 	</head>
 	<body>
 		<header>
 			<h1>📄 PDF Diff Viewer</h1>
-			<span class="badge">Prototype</span>
+			<span class="badge">Text Comparison</span>
 		</header>
 
 		<div class="controls">
@@ -276,7 +344,6 @@
 					<input type="file" id="inOld" accept="application/pdf" />
 				</div>
 			</div>
-
 			<div class="file-group">
 				<label class="lbl-new">New PDF</label>
 				<div class="file-btn">
@@ -286,38 +353,50 @@
 				</div>
 			</div>
 
+			<label class="sync-toggle">
+				<input type="checkbox" id="syncScroll" checked /> Scroll Sync
+			</label>
+
 			<button id="compareBtn" disabled>Compare</button>
 			<span id="status"></span>
 		</div>
 
-		<div class="legend">
-			<span><span class="sw sw-del"></span> Deleted (old)</span>
-			<span><span class="sw sw-add"></span> Added (new)</span>
-		</div>
-
-		<div class="viewer">
-			<div class="pane">
+		<div class="main-area">
+			<div class="pane" id="paneOld">
 				<div class="pane-header old">Old Version</div>
 				<div class="pages" id="pagesOld"></div>
 			</div>
-			<div class="pane">
+			<div class="pane" id="paneNew">
 				<div class="pane-header new">New Version</div>
 				<div class="pages" id="pagesNew"></div>
+			</div>
+
+			<div class="changes-panel">
+				<div class="panel-header">
+					Changes <span class="count" id="changeCount">0</span>
+				</div>
+				<div class="search-box">
+					<input
+						type="text"
+						id="searchInput"
+						placeholder="Search changes…"
+					/>
+				</div>
+				<div class="changes-list" id="changesList"></div>
 			</div>
 		</div>
 
 		<script>
-			pdfjsLib.GlobalWorkerOptions.workerSrc =
-				"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+			const API = "http://localhost:8000/text-diff";
 
-			const API = "http://localhost:8000/diff";
-
-			// ── File inputs ────────────────────────────────────
 			const inOld = document.getElementById("inOld");
 			const inNew = document.getElementById("inNew");
 			const btn = document.getElementById("compareBtn");
 			const stat = document.getElementById("status");
+			const paneOld = document.getElementById("paneOld");
+			const paneNew = document.getElementById("paneNew");
 
+			// ── File inputs ───────────────────────────────────
 			function wire(input, nameEl) {
 				input.addEventListener("change", () => {
 					nameEl.textContent = input.files[0]?.name ?? "Choose file…";
@@ -327,40 +406,61 @@
 			wire(inOld, document.getElementById("nameOld"));
 			wire(inNew, document.getElementById("nameNew"));
 
-			// ── Compare ────────────────────────────────────────
+			// ── Scroll sync ───────────────────────────────────
+			const syncCheck = document.getElementById("syncScroll");
+			let syncing = false;
+
+			[paneOld, paneNew].forEach((src, i) => {
+				const target = i === 0 ? paneNew : paneOld;
+				src.addEventListener("scroll", () => {
+					if (!syncCheck.checked || syncing) return;
+					syncing = true;
+					const pct =
+						src.scrollTop /
+						(src.scrollHeight - src.clientHeight || 1);
+					target.scrollTop =
+						pct * (target.scrollHeight - target.clientHeight || 1);
+					requestAnimationFrame(() => (syncing = false));
+				});
+			});
+
+			// ── Compare ───────────────────────────────────────
+			let allChanges = [];
+
 			btn.addEventListener("click", async () => {
 				btn.disabled = true;
-				setStatus("Extracting text…");
-				clearPanes();
+				clearAll();
 
 				try {
-					const [oldBuf, newBuf] = await Promise.all([
-						inOld.files[0].arrayBuffer(),
-						inNew.files[0].arrayBuffer(),
-					]);
+					setStatus("Uploading & comparing…");
 
-					// Load both PDFs and extract text via pdf.js (same library = same offsets)
-					const [oldData, newData] = await Promise.all([
-						loadPdfData(oldBuf),
-						loadPdfData(newBuf),
-					]);
+					const fd = new FormData();
+					fd.append("old_pdf", inOld.files[0]);
+					fd.append("new_pdf", inNew.files[0]);
 
-					setStatus("Computing diff…");
-					const diffs = await fetchDiff(
-						oldData.fullText,
-						newData.fullText,
-					);
-
-					// Build character-index sets for each side
-					const oldHl = buildHlSet(diffs, "old");
-					const newHl = buildHlSet(diffs, "new");
+					const res = await fetch(API, { method: "POST", body: fd });
+					if (!res.ok) {
+						const body = await res
+							.json()
+							.catch(() => ({ detail: res.statusText }));
+						throw new Error(body.detail ?? res.statusText);
+					}
+					const data = await res.json();
 
 					setStatus("Rendering…");
-					await Promise.all([
-						renderPages(oldData.pages, "pagesOld", oldHl, "hl-del"),
-						renderPages(newData.pages, "pagesNew", newHl, "hl-add"),
-					]);
+					for (const pg of data.pages) {
+						appendImg(
+							document.getElementById("pagesOld"),
+							pg.old_img,
+						);
+						appendImg(
+							document.getElementById("pagesNew"),
+							pg.new_img,
+						);
+					}
 
+					allChanges = data.changes || [];
+					renderChangesList(allChanges);
 					setStatus("");
 				} catch (e) {
 					setStatus("Error: " + e.message, true);
@@ -370,143 +470,116 @@
 				}
 			});
 
-			// ── Load PDF — extract pages + build full text string ──
-			async function loadPdfData(arrayBuffer) {
-				const pdf = await pdfjsLib.getDocument({ data: arrayBuffer })
-					.promise;
-				const pages = [];
-				let fullText = "";
+			// ── Changes panel ─────────────────────────────────
+			function renderChangesList(changes) {
+				const list = document.getElementById("changesList");
+				const count = document.getElementById("changeCount");
+				list.innerHTML = "";
+				count.textContent = changes.length;
 
-				for (let p = 1; p <= pdf.numPages; p++) {
-					const page = await pdf.getPage(p);
-					const textContent = await page.getTextContent();
+				changes.forEach((c, i) => {
+					const div = document.createElement("div");
+					div.className = "change-item";
+					div.dataset.idx = i;
 
-					const itemOffsets = [];
-					for (const item of textContent.items) {
-						itemOffsets.push(fullText.length);
-						if (typeof item.str === "string") {
-							fullText += item.str;
-							if (item.hasEOL) fullText += "\n";
-						}
-					}
+					const kindLabel =
+						c.kind === "del"
+							? "Deleted"
+							: c.kind === "add"
+								? "Added"
+								: "Modified";
 
-					pages.push({ page, textContent, itemOffsets });
-				}
-
-				return { pages, fullText };
-			}
-
-			// ── Call backend ───────────────────────────────────
-			async function fetchDiff(oldText, newText) {
-				const res = await fetch(API, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({
-						old_text: oldText,
-						new_text: newText,
-					}),
-				});
-				if (!res.ok) {
-					const body = await res
-						.json()
-						.catch(() => ({ detail: res.statusText }));
-					throw new Error(body.detail ?? res.statusText);
-				}
-				return (await res.json()).diffs;
-			}
-
-			// ── Build a Set of highlighted char indices for one side ──
-			function buildHlSet(diffs, side) {
-				const hl = new Set();
-				let oi = 0,
-					ni = 0;
-				for (const { op, text } of diffs) {
-					const len = text.length;
-					if (op === "=") {
-						oi += len;
-						ni += len;
-					} else if (op === "-") {
-						if (side === "old")
-							for (let i = 0; i < len; i++) hl.add(oi + i);
-						oi += len;
+					let textPreview = "";
+					if (c.kind === "del") {
+						textPreview = `<span class="old-t">${esc(c.old_text)}</span>`;
+					} else if (c.kind === "add") {
+						textPreview = `<span class="new-t">${esc(c.new_text)}</span>`;
 					} else {
-						// '+'
-						if (side === "new")
-							for (let i = 0; i < len; i++) hl.add(ni + i);
-						ni += len;
-					}
-				}
-				return hl;
-			}
-
-			// ── Render pages with highlights ───────────────────
-			async function renderPages(pages, containerId, hlSet, hlClass) {
-				const container = document.getElementById(containerId);
-				const paneWidth =
-					container.closest(".pane").clientWidth -
-					32; /* 16px padding each side */
-
-				for (const { page, textContent, itemOffsets } of pages) {
-					const defaultViewport = page.getViewport({ scale: 1 });
-					const fitScale = paneWidth / defaultViewport.width;
-					const viewport = page.getViewport({ scale: fitScale });
-					// Wrapper
-					const wrap = document.createElement("div");
-					wrap.className = "page-wrap";
-					wrap.style.width = `${viewport.width}px`;
-					wrap.style.height = `${viewport.height}px`;
-
-					// Canvas
-					const canvas = document.createElement("canvas");
-					canvas.width = viewport.width;
-					canvas.height = viewport.height;
-					await page.render({
-						canvasContext: canvas.getContext("2d"),
-						viewport,
-					}).promise;
-					wrap.appendChild(canvas);
-
-					// Text layer — rendered by pdf.js itself (correct positions guaranteed)
-					const textLayerDiv = document.createElement("div");
-					textLayerDiv.className = "textLayer";
-
-					const textDivs = [];
-					await pdfjsLib.renderTextLayer({
-						textContent,
-						container: textLayerDiv,
-						viewport,
-						textDivs, // populated with one element per textContent.items entry
-					}).promise;
-
-					// Apply highlight class to any span that overlaps a diff region
-					for (let i = 0; i < textContent.items.length; i++) {
-						const item = textContent.items[i];
-						if (!item.str || !textDivs[i]) continue;
-
-						const start = itemOffsets[i];
-						const end = start + item.str.length;
-
-						for (let c = start; c < end; c++) {
-							if (hlSet.has(c)) {
-								textDivs[i].classList.add(hlClass);
-								break;
-							}
-						}
+						textPreview = `<span class="old-t">${esc(c.old_text)}</span> → <span class="new-t">${esc(c.new_text)}</span>`;
 					}
 
-					wrap.appendChild(textLayerDiv);
-					container.appendChild(wrap);
-				}
+					div.innerHTML = `
+					<span class="change-badge ${c.kind}">${kindLabel}</span>
+					<span class="change-page">Page ${c.page + 1}</span>
+					<span class="change-text">${textPreview}</span>
+				`;
+
+					div.addEventListener("click", () => jumpToChange(c, div));
+					list.appendChild(div);
+				});
 			}
 
-			// ── Helpers ────────────────────────────────────────
-			function clearPanes() {
+			function jumpToChange(change, el) {
+				document
+					.querySelectorAll(".change-item")
+					.forEach((x) => x.classList.remove("active"));
+				el.classList.add("active");
+
+				[paneOld, paneNew].forEach((pane) => {
+					const pages = pane.querySelector(".pages");
+					if (!pages) return;
+					const imgs = pages.querySelectorAll(".page-wrap");
+					if (imgs.length === 0) return;
+					const pageImg = imgs[change.page];
+					if (!pageImg) return;
+
+					const pageTop = pageImg.offsetTop - pages.offsetTop;
+					const pageH = pageImg.offsetHeight;
+					const targetY =
+						pageTop + pageH * change.y_pct - pane.clientHeight / 3;
+
+					syncing = true;
+					pane.scrollTop = Math.max(0, targetY);
+					setTimeout(() => (syncing = false), 100);
+				});
+			}
+
+			// Search
+			document
+				.getElementById("searchInput")
+				.addEventListener("input", (e) => {
+					const q = e.target.value.toLowerCase().trim();
+					if (!q) {
+						renderChangesList(allChanges);
+						return;
+					}
+					renderChangesList(
+						allChanges.filter(
+							(c) =>
+								c.old_text.toLowerCase().includes(q) ||
+								c.new_text.toLowerCase().includes(q),
+						),
+					);
+				});
+
+			// ── Helpers ───────────────────────────────────────
+			function appendImg(container, b64) {
+				const wrap = document.createElement("div");
+				wrap.className = "page-wrap";
+				const img = document.createElement("img");
+				img.src = "data:image/png;base64," + b64;
+				wrap.appendChild(img);
+				container.appendChild(wrap);
+			}
+
+			function clearAll() {
 				document.getElementById("pagesOld").innerHTML = "";
 				document.getElementById("pagesNew").innerHTML = "";
+				document.getElementById("changesList").innerHTML = "";
+				document.getElementById("changeCount").textContent = "0";
+				document.getElementById("searchInput").value = "";
+				allChanges = [];
 			}
+
 			function setStatus(msg, isErr = false) {
 				stat.textContent = msg;
 				stat.className = isErr ? "err" : "";
+			}
+
+			function esc(s) {
+				const d = document.createElement("div");
+				d.textContent = s;
+				return d.innerHTML;
 			}
 		</script>
 	</body>
