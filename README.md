@@ -28,3 +28,8 @@ This is a sample project to demonstrate the PDF-Diff functionality.
 
 5. Upload the two PDF files to compare.
 
+
+## Results for sample files provided:
+
+![Result Page 1](./sampleDiff1.png)
+![Result Page 2](./sampleDiff2.png)
