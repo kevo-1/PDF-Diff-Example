@@ -1,35 +1,87 @@
-# PDF-Diff Example
+# web-monitoring-pdf-diff-example
 
-This is a sample project to demonstrate the PDF-Diff functionality.
+Tools for diffing PDF documents, producing output compatible with
+[web-monitoring-diff](https://github.com/edgi-govdata-archiving/web-monitoring-diff).
 
-**Note:** This project is a prototype and is not intended for production use.
+## Installation
 
-## How to Run
+```bash
+pip install web-monitoring-pdf-diff
+```
 
-1. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+For development:
 
-2. Run the server:
-   ```bash
-   uvicorn main:app --reload
-   ```
+```bash
+pip install -e ".[dev]"
+```
 
-3. Host the index.html file:
-    ```bash
-    python -m http.server 8000
-    ```
+## Usage
 
-4. Open the application in your browser:
-    ```
-    http://localhost:8000
-    ```
+### Library
 
-5. Upload the two PDF files to compare.
+```python
+from web_monitoring_pdf_diff import pdf_text_diff
 
+with open("old.pdf", "rb") as f:
+    old_pdf = f.read()
+with open("new.pdf", "rb") as f:
+    new_pdf = f.read()
 
-## Results for sample files provided:
+result = pdf_text_diff(old_pdf, new_pdf)
+```
 
-![Result Page 1](./sampleDiff1.png)
-![Result Page 2](./sampleDiff2.png)
+The result is a dictionary matching the web-monitoring-diff output format:
+
+```json
+{
+	"diff": [
+		[-1, "removed text"],
+		[0, "unchanged text"],
+		[1, "added text"]
+	],
+	"change_count": 2
+}
+```
+
+Where each entry in `diff` is a `[change_type, text]` pair:
+
+- `-1` = removed (text present in old PDF only)
+- `0` = unchanged
+- `1` = added (text present in new PDF only)
+
+### Example with included sample PDFs
+
+Two sample PDFs are included in the repository for quick testing:
+
+```python
+from web_monitoring_pdf_diff import pdf_text_diff
+
+with open("pdf_sample.pdf", "rb") as f:
+    original = f.read()
+with open("pdf_sample changed.pdf", "rb") as f:
+    modified = f.read()
+
+result = pdf_text_diff(original, modified)
+print(f"Found {result['change_count']} change(s)")
+for change_type, text in result["diff"]:
+    if change_type == -1:
+        print(f"  REMOVED: {text[:80]}")
+    elif change_type == 1:
+        print(f"  ADDED:   {text[:80]}")
+```
+
+### Example Output
+
+```
+Found 3 change(s)
+  REMOVED: fun fun.
+  ADDED:   Fun Fun Fun.
+  REMOVED: pellentesque elit,
+  ADDED:   pellentesque. Elit,
+  ADDED:   Extra text
+ Extra text Sample PDF This is a simple PDF file. Fun Fun Fun Fun. L
+```
+
+## Target Python Version
+
+Python >= 3.10
