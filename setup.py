@@ -43,6 +43,13 @@ setup(
         "dev": [
             "pytest",
             "pytest-cov",
+            "httpx",
+        ],
+        "server": [
+            "fastapi",
+            "uvicorn[standard]",
+            "python-multipart",
+            "gunicorn; sys_platform != 'win32'",
         ],
     },
 )

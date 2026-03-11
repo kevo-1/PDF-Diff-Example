@@ -82,6 +82,32 @@ Found 3 change(s)
  Extra text Sample PDF This is a simple PDF file. Fun Fun Fun Fun. L
 ```
 
+## Web Service
+
+The package includes a FastAPI web service that exposes `pdf_text_diff` as an HTTP endpoint.
+
+### Install with server dependencies
+
+```bash
+pip install -e ".[server]"
+```
+
+### Run locally
+
+**Windows / all platforms** (using uvicorn directly):
+
+```bash
+uvicorn web_monitoring_pdf_diff.web:app --host 127.0.0.1 --port 8000 --reload
+```
+
+### Example request
+
+```bash
+curl -X POST http://127.0.0.1:8000/pdf_text_diff \
+  -F "old_pdf=@old.pdf" \
+  -F "new_pdf=@new.pdf"
+```
+
 ## Target Python Version
 
 Python >= 3.10
