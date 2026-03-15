@@ -35,7 +35,7 @@ from .exceptions import (
     PdfNotAPdfError,
     UndiffableContentError,
 )
-from .fetch import fetch_pdf
+from .fetch import fetch_pdf, _MAX_PDF_BYTES
 from .pdf_diff import pdf_text_diff
 
 app = FastAPI(
@@ -94,6 +94,19 @@ async def diff_pdfs_files(
         return JSONResponse(
             status_code=400,
             content={"detail": f"Failed to read uploaded files: {exc}"},
+        )
+
+    for label, data in [("old_pdf", old_bytes), ("new_pdf", new_bytes)]:
+        if len(data) > _MAX_PDF_BYTES:
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "detail": (
+                        f"'{label}' exceeds the "
+                        f"{_MAX_PDF_BYTES // (1024 * 1024)} MB upload limit "
+                        f"({len(data)} bytes received)"
+                    )
+                },
         )
 
     return _run_diff(old_bytes, new_bytes)
