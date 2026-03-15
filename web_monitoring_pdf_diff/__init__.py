@@ -15,7 +15,7 @@ Usage::
 
 __version__ = "0.1.0"
 
-from .pdf_diff import pdf_text_diff  # noqa: F401
+from .pdf_diff import pdf_text_diff, MAX_DIFF_PAGES  # noqa: F401
 from .exceptions import (  # noqa: F401
     UndiffableContentError,
     PdfFetchError,

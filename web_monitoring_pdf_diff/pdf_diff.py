@@ -9,13 +9,21 @@ All public functions follow the web-monitoring-diff convention:
 """
 
 import difflib
+import os
 
 import fitz  # PyMuPDF
 
 from .exceptions import UndiffableContentError
 
+# Maximum number of pages to process per PDF.  Set via the
+# ``MAX_DIFF_PAGES`` environment variable; defaults to 100.
+MAX_DIFF_PAGES: int = int(os.environ.get("MAX_DIFF_PAGES", "100"))
 
-def _extract_words(pdf_bytes: bytes) -> list[list[str]]:
+
+def _extract_words(
+    pdf_bytes: bytes,
+    max_pages: int | None = None,
+) -> tuple[list[list[str]], int, bool]:
     """
     Extract words from each page of a PDF.
 
@@ -23,11 +31,16 @@ def _extract_words(pdf_bytes: bytes) -> list[list[str]]:
     ----------
     pdf_bytes : bytes
         Raw PDF file content.
+    max_pages : int | None
+        If set, only the first *max_pages* pages are processed.
 
     Returns
     -------
-    list[list[str]]
-        A list of pages, where each page is a list of word strings.
+    tuple[list[list[str]], int, bool]
+        ``(pages, total_pages, truncated)`` where *pages* is a list of
+        pages (each a list of word strings), *total_pages* is the
+        document's full page count, and *truncated* is ``True`` when
+        pages were skipped.
 
     Raises
     ------
@@ -41,13 +54,19 @@ def _extract_words(pdf_bytes: bytes) -> list[list[str]]:
             f"Could not open content as PDF: {exc}"
         ) from exc
 
+    total_pages = len(doc)
+    limit = max_pages if max_pages is not None else total_pages
+    truncated = total_pages > limit
+
     pages: list[list[str]] = []
-    for page in doc:
+    for idx, page in enumerate(doc):
+        if idx >= limit:
+            break
         # get_text("words") returns list of (x0, y0, x1, y1, word, block, line, word_n)
         raw_words = page.get_text("words")
         pages.append([w[4] for w in raw_words])
     doc.close()
-    return pages
+    return pages, total_pages, truncated
 
 
 def _flatten_pages(pages: list[list[str]]) -> list[str]:
@@ -116,6 +135,10 @@ def pdf_text_diff(a_body: bytes, b_body: bytes) -> dict:
     This follows the web-monitoring-diff output convention so the result
     can be consumed directly by the Wayback Machine diff UI.
 
+    Only the first :data:`MAX_DIFF_PAGES` pages of each document are
+    processed.  When truncation occurs the response includes
+    ``"truncated": true`` and ``"pages_processed"``.
+
     Parameters
     ----------
     a_body : bytes
@@ -130,6 +153,8 @@ def pdf_text_diff(a_body: bytes, b_body: bytes) -> dict:
         - ``"diff"``: list of ``[change_type, text]`` pairs where
           change_type is -1 (removed), 0 (unchanged), or 1 (added).
         - ``"change_count"``: integer count of changes.
+        - ``"truncated"``: bool indicating whether pages were skipped.
+        - ``"pages_processed"``: number of pages actually compared.
 
     Raises
     ------
@@ -144,8 +169,8 @@ def pdf_text_diff(a_body: bytes, b_body: bytes) -> dict:
     >>> result["change_count"]
     2
     """
-    a_pages = _extract_words(a_body)
-    b_pages = _extract_words(b_body)
+    a_pages, a_total, a_trunc = _extract_words(a_body, MAX_DIFF_PAGES)
+    b_pages, b_total, b_trunc = _extract_words(b_body, MAX_DIFF_PAGES)
 
     a_words = _flatten_pages(a_pages)
     b_words = _flatten_pages(b_pages)
@@ -155,7 +180,12 @@ def pdf_text_diff(a_body: bytes, b_body: bytes) -> dict:
 
     diff, change_count = _coalesce_opcodes(opcodes, a_words, b_words)
 
+    truncated = a_trunc or b_trunc
+    pages_processed = min(len(a_pages), len(b_pages))
+
     return {
         "diff": diff,
         "change_count": change_count,
+        "truncated": truncated,
+        "pages_processed": pages_processed,
     }
