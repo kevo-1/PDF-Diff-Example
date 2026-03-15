@@ -16,4 +16,12 @@ Usage::
 __version__ = "0.1.0"
 
 from .pdf_diff import pdf_text_diff  # noqa: F401
-from .exceptions import UndiffableContentError  # noqa: F401
+from .exceptions import (  # noqa: F401
+    UndiffableContentError,
+    PdfFetchError,
+    PdfHttpError,
+    PdfConnectionError,
+    PdfIncompleteDownloadError,
+    PdfNotAPdfError,
+)
+from .fetch import fetch_pdf  # noqa: F401
