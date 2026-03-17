@@ -108,3 +108,39 @@ class TestErrorHandling:
     def test_empty_bytes_raises(self):
         with pytest.raises(UndiffableContentError):
             pdf_text_diff(b"", b"")
+
+
+class TestDuplicateDetection:
+    """Verify the byte-hash and text-hash fast paths."""
+
+    def test_byte_identical_short_circuits(self, sample_pdf):
+        """Exact same bytes → identical=True, no diff computed."""
+        result = pdf_text_diff(sample_pdf, sample_pdf)
+        assert result["identical"] is True
+        assert result["change_count"] == 0
+        assert result["method"] == "byte_hash"
+
+    def test_text_identical_short_circuits(self, sample_pdf, text_identical_pdf):
+        """Different bytes, same text → identical=True via text hash."""
+        # Sanity: the raw bytes really are different
+        assert sample_pdf != text_identical_pdf
+        result = pdf_text_diff(sample_pdf, text_identical_pdf)
+        assert result["identical"] is True
+        assert result["change_count"] == 0
+        assert result["method"] == "text_hash"
+
+    def test_different_pdfs_not_identical(self, sample_pdf, modified_pdf):
+        """Genuinely different PDFs → identical=False."""
+        result = pdf_text_diff(sample_pdf, modified_pdf)
+        assert result["identical"] is False
+        assert result["change_count"] > 0
+        assert result["method"] == "full_diff"
+
+    def test_empty_pdfs_identical(self, empty_pdf):
+        """Two empty PDFs → identical=True, no diff entries."""
+        result = pdf_text_diff(empty_pdf, empty_pdf)
+        assert result["identical"] is True
+        assert result["change_count"] == 0
+        assert result["diff"] == []
+        assert result["method"] == "byte_hash"
+

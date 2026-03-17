@@ -9,6 +9,7 @@ All public functions follow the web-monitoring-diff convention:
 """
 
 import difflib
+import hashlib
 import os
 
 import fitz  # PyMuPDF
@@ -82,6 +83,19 @@ def _flatten_pages(pages: list[list[str]]) -> list[str]:
             flat.append("\n")
         flat.extend(page_words)
     return flat
+
+
+def _content_hash(pages: list[list[str]]) -> str:
+    """
+    Return a SHA-256 hex digest of the normalised text content.
+
+    All words across all pages are joined with a single space
+    (page boundaries marked with ``\n``) so that metadata or
+    compression differences are ignored.
+    """
+    flat = _flatten_pages(pages)
+    text = " ".join(flat)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def _coalesce_opcodes(
@@ -169,12 +183,51 @@ def pdf_text_diff(a_body: bytes, b_body: bytes) -> dict:
     >>> result["change_count"]
     2
     """
+    # -------------------------------------------------------------------
+    # Fast path 1: byte-identical PDFs (exact same file)
+    # -------------------------------------------------------------------
+    byte_identical = (
+        hashlib.sha256(a_body).hexdigest()
+        == hashlib.sha256(b_body).hexdigest()
+    )
+    if byte_identical:
+        a_pages, a_total, a_trunc = _extract_words(a_body, MAX_DIFF_PAGES)
+        a_words = _flatten_pages(a_pages)
+        return {
+            "diff": [[0, " ".join(a_words)]] if a_words else [],
+            "change_count": 0,
+            "identical": True,
+            "method": "byte_hash",
+            "truncated": a_trunc,
+            "pages_processed": len(a_pages),
+        }
+
+    # -------------------------------------------------------------------
+    # Extract text (needed for both fast-path-2 and the full diff)
+    # -------------------------------------------------------------------
     a_pages, a_total, a_trunc = _extract_words(a_body, MAX_DIFF_PAGES)
     b_pages, b_total, b_trunc = _extract_words(b_body, MAX_DIFF_PAGES)
 
     a_words = _flatten_pages(a_pages)
     b_words = _flatten_pages(b_pages)
 
+    # -------------------------------------------------------------------
+    # Fast path 2: different bytes but identical text content
+    # -------------------------------------------------------------------
+    if _content_hash(a_pages) == _content_hash(b_pages):
+        truncated = a_trunc or b_trunc
+        return {
+            "diff": [[0, " ".join(a_words)]] if a_words else [],
+            "change_count": 0,
+            "identical": True,
+            "method": "text_hash",
+            "truncated": truncated,
+            "pages_processed": min(len(a_pages), len(b_pages)),
+        }
+
+    # -------------------------------------------------------------------
+    # Full diff
+    # -------------------------------------------------------------------
     matcher = difflib.SequenceMatcher(None, a_words, b_words)
     opcodes = matcher.get_opcodes()
 
@@ -186,6 +239,8 @@ def pdf_text_diff(a_body: bytes, b_body: bytes) -> dict:
     return {
         "diff": diff,
         "change_count": change_count,
+        "identical": False,
+        "method": "full_diff",
         "truncated": truncated,
         "pages_processed": pages_processed,
     }

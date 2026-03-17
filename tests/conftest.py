@@ -62,3 +62,20 @@ def multi_page_pdf():
     pdf_bytes = doc.tobytes()
     doc.close()
     return pdf_bytes
+
+
+@pytest.fixture
+def text_identical_pdf():
+    """Same text as sample_pdf but different byte representation (extra metadata)."""
+    doc = fitz.open()
+    page = doc.new_page(width=612, height=792)
+    page.insert_text((72, 72),
+        "The quick brown fox jumps over the lazy dog. "
+        "This is a sample document for testing PDF comparison.",
+        fontsize=12,
+    )
+    doc.set_metadata({"author": "text-identical-fixture"})
+    pdf_bytes = doc.tobytes()
+    doc.close()
+    return pdf_bytes
+
