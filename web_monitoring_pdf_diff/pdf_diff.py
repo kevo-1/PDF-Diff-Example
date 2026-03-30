@@ -142,6 +142,23 @@ def _append_chunk(result: list[list], change_type: int, text: str):
         result.append([change_type, text])
 
 
+def _build_html_combined(diff: list[list]) -> str:
+    """
+    Convert a diff list into a combined html string with <ins>/<del> tags, 
+    to match the web-monitoring-diff format
+    """
+    combined = []
+    for change_type, text in diff:
+        html_format = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        if change_type == -1:
+            combined.append(f'<del class="wm-diff">{html_format}</del>')
+        elif change_type == 1:
+            combined.append(f'<ins class="wm-diff">{html_format}</ins>')
+        else:
+            combined.append(html_format)
+    return " ".join(combined)
+
+
 def pdf_text_diff(a_body: bytes, b_body: bytes) -> dict:
     """
     Compute a word-level text diff between two PDF documents.
@@ -195,7 +212,10 @@ def pdf_text_diff(a_body: bytes, b_body: bytes) -> dict:
         a_words = _flatten_pages(a_pages)
         return {
             "diff": [[0, " ".join(a_words)]] if a_words else [],
+            "combined": "",
             "change_count": 0,
+            "deletions_count": 0,
+            "insertions_count": 0,
             "identical": True,
             "method": "byte_hash",
             "truncated": a_trunc,
@@ -218,7 +238,10 @@ def pdf_text_diff(a_body: bytes, b_body: bytes) -> dict:
         truncated = a_trunc or b_trunc
         return {
             "diff": [[0, " ".join(a_words)]] if a_words else [],
+            "combined": "",
             "change_count": 0,
+            "deletions_count": 0,
+            "insertions_count": 0,
             "identical": True,
             "method": "text_hash",
             "truncated": truncated,
@@ -238,7 +261,10 @@ def pdf_text_diff(a_body: bytes, b_body: bytes) -> dict:
 
     return {
         "diff": diff,
+        "combined": _build_html_combined(diff=diff),
         "change_count": change_count,
+        "deletions_count": sum(1 for ct, _ in diff if ct == -1),
+        "insertions_count": sum(1 for ct, _ in diff if ct == 1),
         "identical": False,
         "method": "full_diff",
         "truncated": truncated,

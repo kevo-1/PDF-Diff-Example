@@ -11,7 +11,7 @@ Validates that:
 from web_monitoring_pdf_diff import pdf_text_diff, UndiffableContentError
 import pytest
 
-
+# TODO: Add new fields to the tests
 class TestOutputFormat:
     """Verify the output dict matches web-monitoring-diff's contract."""
 
